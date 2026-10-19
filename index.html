@@ -326,7 +326,6 @@ body[data-page="signin"] main { margin-left: 0; }
   <a href="#home" data-nav="home"><svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>Home</a>
   <a href="#leave" data-nav="leave"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="1.5"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>Leave</a>
   <a href="#records" data-nav="records"><svg viewBox="0 0 24 24"><path d="M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg>Forms</a>
-  <a href="#colleagues" data-nav="colleagues"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.6 3.2-5.5 6.5-5.5s5.9 1.9 6.5 5.5"/><path d="M16 4.8a3.5 3.5 0 0 1 0 6.4M18 14.8c2 .7 3.2 2.4 3.5 5.2"/></svg>Colleagues</a>
   <a href="#settings" data-nav="settings"><span id="syncdot" class="syncdot" hidden></span><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-2.7 1.1V21a2 2 0 1 1-4 0v-.1a1.6 1.6 0 0 0-2.7-1.1l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A1.6 1.6 0 0 0 3.6 15H3a2 2 0 1 1 0-4h.1a1.6 1.6 0 0 0 1.1-2.7l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1A1.6 1.6 0 0 0 9.7 4.4V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 2.7 1.1l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0 1.1 2.7H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/></svg>Settings</a>
 </nav>
 <main id="view"></main>
@@ -1273,10 +1272,10 @@ window.Leave = (function () {
     const h = location.hash.replace(/^#/, '') || 'home';
     const [page, arg] = h.split('/');
     if (current && !(page === 'edit' && arg === current.doc.id)) closeEditor();
-    $$('.nav a').forEach(a => a.classList.toggle('on', a.dataset.nav === ({ edit: 'records', new: 'records', apply: 'home', case: 'leave', letter: 'leave' }[page] || page)));
+    $$('.nav a').forEach(a => a.classList.toggle('on', a.dataset.nav === ({ edit: 'records', new: 'records', apply: 'home', case: 'leave', letter: 'leave', colleagues: 'settings' }[page] || page)));
     document.body.dataset.page = page;
     window.scrollTo(0, 0);
-    ({ home: renderHome, new: renderRecords, records: renderRecords, leave: renderLeave, colleagues: renderColleagues, settings: renderSettings,
+    ({ home: renderHome, new: renderRecords, records: renderRecords, leave: renderLeave, colleagues: () => { renderSettings(); $('#colsec').scrollIntoView(); }, settings: renderSettings,
       apply: renderApply, edit: () => openEditor(arg), case: () => renderCase(arg), letter: () => renderLetter(arg) }[page] || renderHome)();
   }
   window.addEventListener('hashchange', route);
@@ -1883,9 +1882,11 @@ window.Leave = (function () {
     $('[data-cancel]', f).addEventListener('click', onCancel);
     return f;
   }
-  function renderColleagues() {
-    view.innerHTML = `<header class="head"><h1>Colleagues</h1><p class="sub">People who look after your duties while you are away. Pick them on any form's substitute line.</p></header>
-      <div class="sec-h"><span></span><button type="button" class="btn primary" id="cadd">Add colleague</button></div><div id="cnew"></div><div id="clist" class="clist"></div>`;
+  // Colleagues, shown as a section of Settings.
+  const colleaguesSection = () => `<section class="panel-s" id="colsec"><div class="sec-h"><h2>Colleagues</h2><button type="button" class="btn primary" id="cadd">Add colleague</button></div>
+      <p class="note">People who look after your duties while you are away. Pick them as substitute on Apply for leave or on any form's substitute line.</p>
+      <div id="cnew"></div><div id="clist" class="clist"></div></section>`;
+  function bindColleagues() {
     const draw = () => {
       $('#clist').innerHTML = DB.colleagues.length ? DB.colleagues.map(c => `<div class="col" data-id="${c.id}"><div class="col-main"><b>${esc(c.name)}</b>
         <span>${esc([c.designation, c.department].filter(Boolean).join(', '))}</span><span class="muted">${esc([c.mobile, c.email].filter(Boolean).join(' · '))}</span></div>
@@ -1909,13 +1910,14 @@ window.Leave = (function () {
   function renderSettings() {
     const p = DB.profile, S = DB.settings;
     const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    view.innerHTML = `<header class="head"><h1>Settings</h1><p class="sub">Saved as you type, in this browser only. Use Backup to keep a copy or move to another computer. Colleagues who can take over your duties are under <a href="#colleagues">Colleagues</a>.</p></header>
+    view.innerHTML = `<header class="head"><h1>Settings</h1><p class="sub">${Cloud.on ? 'Saved online as you type.' : 'Saved as you type, in this browser only. Use Backup to keep a copy or move to another computer.'}</p></header>
       <section class="panel-s"><h2>Profile</h2><p class="note">Filled into every new form. Combined boxes such as "Designation &amp; Department" are put together for you.</p>
         <div class="pform">${PROFILE_FIELDS.map(([k, l, ph, used, t]) => `<label${k === 'leaveAddress' || k === 'research' ? ' class="wide"' : ''}>${l}<input data-p="${k}" value="${esc(p[k] || '')}" placeholder="${esc(ph)}"${t === 'date' ? ' inputmode="numeric"' : ''}><small>${esc(used)}</small></label>`).join('')}</div>
         <div class="sig-row"><div class="sig-prev">${p.sig ? `<img src="${p.sig}" alt="Your signature">` : '<span class="muted">No signature</span>'}</div>
           <div class="row"><label class="btn">Upload signature<input type="file" id="sigf" accept="image/png,image/jpeg" hidden></label>${p.sig ? '<button type="button" class="btn" id="sigx">Remove</button>' : ''}</div>
           <small class="note">A PNG with a transparent background looks most natural. It is placed on the applicant's signature line.</small></div>
       </section>
+      ${colleaguesSection()}
       <section class="panel-s"><h2>Leave rules</h2>
         <div class="pform">
           <label>CL per year<input data-q="CL" inputmode="numeric" value="${S.quotas.CL}"></label>
@@ -1940,6 +1942,7 @@ window.Leave = (function () {
       <section class="panel-s"><h2>Backup</h2><p class="note">${Cloud.on ? 'Your data is kept online. A backup file is still a good extra copy, and Restore loads one into your account.' : 'Your data lives in this browser. Download a backup now and then, and restore it on another computer or browser.'}</p>
         <div class="row"><button type="button" class="btn" id="bk">Download backup</button><label class="btn">Restore from backup<input type="file" id="rs" accept="application/json,.json" hidden></label>
         <button type="button" class="btn danger" id="wipe">Erase all data</button></div></section>`;
+    bindColleagues();
     $$('[data-p]').forEach(i => { if (/doj|facultyDate|dob/.test(i.dataset.p)) dateInput(i); i.addEventListener('input', () => { p[i.dataset.p] = i.value.trim(); save(); }); });
     $('#sigf').addEventListener('change', e => {
       const f = e.target.files[0]; if (!f) return;
