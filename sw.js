@@ -1,5 +1,5 @@
 // Keeps the app's own files on the device so it opens without internet. Your data syncs separately.
-const CACHE = 'leave-manager-7b490c22c3';
+const CACHE = 'leave-manager-84dd5f28bd';
 const FILES = ["./", "index.html", "forms/cl_rh.js", "forms/departure_report.js", "forms/examinership.js", "forms/food_bill.js", "forms/international_workshop.js", "forms/joining_report.js", "forms/leave_application.js", "forms/national_conference.js", "forms/private_foreign.js", "forms/ta_bill.js", "forms/visit_report.js"];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())); });

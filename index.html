@@ -237,6 +237,10 @@ body[data-page="signin"] main { margin-left: 0; }
 .signin label { display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; color: var(--muted); }
 .signin input { font-size: 16px; }
 .signin .link { align-self: flex-start; }
+.signin .gbox { margin-top: 18px; display: flex; flex-direction: column; gap: 8px; }
+.signin .gbox .btn { justify-content: center; }
+.signin .g { width: 18px; height: 18px; }
+.signin .or { text-align: center; color: var(--muted); font-size: 13px; margin: 14px 0 -6px; }
 .nav a { position: relative; }
 .syncdot { position: absolute; top: 6px; left: 22px; width: 8px; height: 8px; border-radius: 50%; background: #2e9e57; box-shadow: 0 0 0 2px var(--surface); }
 .syncdot[data-st="busy"] { background: #d99a00; } .syncdot[data-st="offline"] { background: #8a93a3; } .syncdot[data-st="err"] { background: var(--danger); }
@@ -1924,6 +1928,7 @@ window.Leave = (function () {
         <label class="wide blk">Holidays (one per line: dd/mm/yyyy and name)<textarea id="hol" rows="5" placeholder="26/01/2027 Republic Day">${esc(S.holidays)}</textarea></label>
       </section>
       ${Cloud.on ? `<section class="panel-s"><h2>Account</h2><p class="note">Signed in as <b>${esc(Cloud.user ? Cloud.user.email : '')}</b>. Everything you enter is saved online and appears on your other devices.</p>
+        ${Cloud.user ? accountLinks(Cloud.user) : ''}
         <div class="row"><button type="button" class="btn" id="so">Sign out of this device</button></div></section>` : ''}
       <section class="panel-s"><h2>Backup</h2><p class="note">${Cloud.on ? 'Your data is kept online. A backup file is still a good extra copy, and Restore loads one into your account.' : 'Your data lives in this browser. Download a backup now and then, and restore it on another computer or browser.'}</p>
         <div class="row"><button type="button" class="btn" id="bk">Download backup</button><label class="btn">Restore from backup<input type="file" id="rs" accept="application/json,.json" hidden></label>
@@ -1963,7 +1968,7 @@ window.Leave = (function () {
       };
       r.readAsText(f);
     });
-    const so = $('#so'); if (so) so.addEventListener('click', signOut);
+    const so = $('#so'); if (so) { so.addEventListener('click', signOut); bindAccountLinks(); }
     confirmClick($('#wipe'), Cloud.on ? 'Click again: erases it online too' : 'Click again to erase everything', () => { DB = DEFAULTS(); save(true); toast('All data erased.'); renderSettings(); });
   }
 
@@ -2273,9 +2278,35 @@ window.Leave = (function () {
     [KEY, OWNER, SEEN].forEach(k => { try { localStorage.removeItem(k); } catch (e) {} });
     location.hash = 'home'; location.reload();
   }
+  // Google and a password on the same account: Google on the computer, the password in the iPhone Home Screen app.
+  const providers = u => u.providerData.map(p => p.providerId);
+  function accountLinks(u) {
+    const has = providers(u);
+    return `<p class="note">Sign-in: ${[has.includes('google.com') && 'Google', has.includes('password') && 'e-mail and password'].filter(Boolean).join(' and ')}.</p>
+      ${has.includes('password') ? '' : `<form id="pwf" class="inline"><input type="password" name="pw" minlength="6" placeholder="New password (6+ characters)" autocomplete="new-password" aria-label="New password" required><button class="btn">Set a password</button></form>
+        <p class="note">With a password you can also sign in from the iPhone Home Screen app, using ${esc(u.email)}.</p>`}
+      ${has.includes('google.com') ? '' : '<div class="row"><button type="button" class="btn" id="lg">Link my Google account</button></div>'}`;
+  }
+  function bindAccountLinks() {
+    const u = firebase.auth().currentUser; if (!u) return;
+    const pf = $('#pwf');
+    if (pf) pf.addEventListener('submit', e => {
+      e.preventDefault();
+      const pw = pf.pw.value;
+      u.linkWithCredential(firebase.auth.EmailAuthProvider.credential(u.email, pw)).catch(e => e.code === 'auth/email-already-in-use' || e.code === 'auth/provider-already-linked' ? u.updatePassword(pw) : Promise.reject(e))
+        .then(() => u.reload()).then(() => { toast('Password set. Use it with ' + u.email + ' on your iPhone.'); renderSettings(); })
+        .catch(e => toast(e.code === 'auth/requires-recent-login' ? 'Sign out and in again with Google, then set the password.' : e.code === 'auth/weak-password' ? 'Use at least 6 characters.' : e.message));
+    });
+    const lg = $('#lg');
+    if (lg) lg.addEventListener('click', () => u.linkWithPopup(new firebase.auth.GoogleAuthProvider()).then(() => { toast('Google account linked.'); renderSettings(); })
+      .catch(e => toast(e.code === 'auth/credential-already-in-use' ? 'That Google account is already used by another Leave Manager account.' : e.code === 'auth/popup-closed-by-user' ? 'Closed before finishing.' : e.message)));
+  }
   function renderSignIn(msg) {
     document.body.dataset.page = 'signin';
     view.innerHTML = `<div class="signin"><h1>Leave Manager</h1><p class="sub">Sign in to see your leave, forms and profile on any device.</p>
+      <div class="panel-s gbox"><button type="button" class="btn primary big" id="gsi"><svg viewBox="0 0 24 24" aria-hidden="true" class="g"><path fill="#fff" d="M21.6 12.2c0-.7-.1-1.4-.2-2H12v3.8h5.4a4.6 4.6 0 0 1-2 3v2.5h3.2c1.9-1.7 3-4.3 3-7.3z"/><path fill="#fff" opacity=".85" d="M12 22c2.7 0 5-.9 6.6-2.5l-3.2-2.5c-.9.6-2 1-3.4 1-2.6 0-4.8-1.8-5.6-4.1H3.1v2.6A10 10 0 0 0 12 22z"/><path fill="#fff" opacity=".7" d="M6.4 13.9a6 6 0 0 1 0-3.8V7.5H3.1a10 10 0 0 0 0 9z"/><path fill="#fff" opacity=".85" d="M12 6c1.5 0 2.8.5 3.8 1.5l2.8-2.8A10 10 0 0 0 3.1 7.5l3.3 2.6C7.2 7.8 9.4 6 12 6z"/></svg>Continue with Google</button>
+        <p class="note" id="gmsg">Use your Gmail. On an iPhone Home Screen app, sign in with e-mail and a password instead (set one in Settings after your first Google sign-in).</p></div>
+      <p class="or">or with e-mail and password</p>
       <form id="sif" class="panel-s">
         <label>E-mail<input name="email" type="email" autocomplete="username" required value="${esc(DB.profile.email || '')}"></label>
         <label>Password<input name="pw" type="password" autocomplete="current-password" minlength="6" required></label>
@@ -2288,6 +2319,16 @@ window.Leave = (function () {
       'auth/email-already-in-use': 'An account with that e-mail already exists. Sign in instead.', 'auth/weak-password': 'Use a password of at least 6 characters.',
       'auth/network-request-failed': 'No internet connection.', 'auth/too-many-requests': 'Too many tries. Wait a few minutes.' }[e.code] || e.message);
     const busy = b => $$('button', f).forEach(x => { x.disabled = b; });
+    const home = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+    $('#gsi').addEventListener('click', () => {
+      const g = $('#gmsg'), P = new firebase.auth.GoogleAuthProvider(); P.setCustomParameters({ prompt: 'select_account' });
+      g.textContent = 'Opening Google…';
+      A.signInWithPopup(P).catch(e => {
+        if (e.code === 'auth/popup-closed-by-user' || e.code === 'auth/cancelled-popup-request') { g.textContent = 'Google sign-in was closed. Try again.'; return; }
+        if (e.code === 'auth/account-exists-with-different-credential') { g.textContent = 'This e-mail already has a password account. Sign in with the password below, then link Google in Settings.'; return; }
+        g.textContent = home ? 'Google sign-in does not work inside the Home Screen app. Use your e-mail and the password you set in Settings.' : err(e);
+      });
+    });
     f.addEventListener('submit', e => { e.preventDefault(); busy(true); m.textContent = 'Signing in…'; A.signInWithEmailAndPassword(f.email.value.trim(), f.pw.value).catch(e => { m.textContent = err(e); busy(false); }); });
     $('#mk').addEventListener('click', () => { if (!f.reportValidity()) return; busy(true); m.textContent = 'Creating your account…'; A.createUserWithEmailAndPassword(f.email.value.trim(), f.pw.value).catch(e => { m.textContent = err(e); busy(false); }); });
     $('#fg').addEventListener('click', () => { const em = f.email.value.trim(); if (!em) { m.textContent = 'Type your e-mail first.'; return; } A.sendPasswordResetEmail(em).then(() => { m.textContent = 'A reset link is on its way to ' + em + '.'; }).catch(e => { m.textContent = err(e); }); });
