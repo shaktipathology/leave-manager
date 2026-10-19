@@ -283,6 +283,19 @@ body[data-page="signin"] main { margin-left: 0; }
   .nav a { -webkit-tap-highlight-color: transparent; }
   .btn, .acts button, .seg button, select, input:not(.f):not([type=checkbox]):not(.dpick) { min-height: 38px; }
 }
+/* Tables become cards on a phone, so nothing scrolls sideways. */
+@media (max-width: 640px) {
+  .table:has(table.cards) { background: transparent; border: 0; overflow: visible; }
+  table.cards thead { display: none; }
+  table.cards, table.cards tbody, table.cards tr, table.cards td { display: block; width: auto; }
+  table.cards tr { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 10px 14px; margin-bottom: 8px; }
+  table.cards td { border: 0; padding: 2px 0; text-align: left; white-space: normal; }
+  table.cards td.ct { font-weight: 600; padding-bottom: 4px; }
+  table.cards td[data-l] { display: flex; gap: 10px; justify-content: space-between; align-items: center; }
+  table.cards td[data-l]::before { content: attr(data-l); color: var(--muted); font-size: 12.5px; font-weight: 400; }
+  table.cards td.m-hide { display: none; }
+  table.cards .acts { margin-top: 6px; }
+}
 @media (pointer: coarse) {
   /* Touch screens (iPhone): the date box itself sits under the calendar button, so a tap opens the native picker. */
   .dpick { right: 3px; top: 50%; bottom: auto; transform: translateY(-50%); width: 30px; height: 30px; pointer-events: auto; z-index: 1; font-size: 16px; }
@@ -311,10 +324,9 @@ body[data-page="signin"] main { margin-left: 0; }
 <nav class="nav" aria-label="Main">
   <div class="brand">Leave Manager<small>AIIMS Bhopal forms</small></div>
   <a href="#home" data-nav="home"><svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>Home</a>
-  <a href="#apply" data-nav="apply"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="1.5"/><path d="M3 10h18M8 3v4M16 3v4M12 13v5M9.5 15.5h5"/></svg>Apply</a>
   <a href="#leave" data-nav="leave"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="1.5"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>Leave</a>
-  <a href="#new" data-nav="new"><svg viewBox="0 0 24 24"><path d="M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8z"/><path d="M14 3v5h5M12 11v6M9 14h6"/></svg>Forms</a>
-  <a href="#records" data-nav="records"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Saved</a>
+  <a href="#records" data-nav="records"><svg viewBox="0 0 24 24"><path d="M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg>Forms</a>
+  <a href="#colleagues" data-nav="colleagues"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.6 3.2-5.5 6.5-5.5s5.9 1.9 6.5 5.5"/><path d="M16 4.8a3.5 3.5 0 0 1 0 6.4M18 14.8c2 .7 3.2 2.4 3.5 5.2"/></svg>Colleagues</a>
   <a href="#settings" data-nav="settings"><span id="syncdot" class="syncdot" hidden></span><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-2.7 1.1V21a2 2 0 1 1-4 0v-.1a1.6 1.6 0 0 0-2.7-1.1l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A1.6 1.6 0 0 0 3.6 15H3a2 2 0 1 1 0-4h.1a1.6 1.6 0 0 0 1.1-2.7l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1A1.6 1.6 0 0 0 9.7 4.4V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 2.7 1.1l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0 1.1 2.7H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/></svg>Settings</a>
 </nav>
 <main id="view"></main>
@@ -1261,10 +1273,10 @@ window.Leave = (function () {
     const h = location.hash.replace(/^#/, '') || 'home';
     const [page, arg] = h.split('/');
     if (current && !(page === 'edit' && arg === current.doc.id)) closeEditor();
-    $$('.nav a').forEach(a => a.classList.toggle('on', a.dataset.nav === ({ edit: 'records', case: 'leave', letter: 'leave', colleagues: 'settings' }[page] || page)));
+    $$('.nav a').forEach(a => a.classList.toggle('on', a.dataset.nav === ({ edit: 'records', new: 'records', apply: 'home', case: 'leave', letter: 'leave' }[page] || page)));
     document.body.dataset.page = page;
     window.scrollTo(0, 0);
-    ({ home: renderHome, new: renderNew, records: renderRecords, leave: renderLeave, colleagues: renderColleagues, settings: renderSettings,
+    ({ home: renderHome, new: renderRecords, records: renderRecords, leave: renderLeave, colleagues: renderColleagues, settings: renderSettings,
       apply: renderApply, edit: () => openEditor(arg), case: () => renderCase(arg), letter: () => renderLetter(arg) }[page] || renderHome)();
   }
   window.addEventListener('hashchange', route);
@@ -1303,25 +1315,15 @@ window.Leave = (function () {
     view.innerHTML = `
       <header class="head"><h1>${p.name ? 'Hello, ' + esc(p.name) : 'Leave Manager'}</h1>
         <p class="sub">${p.name ? esc([p.designation, p.department].filter(Boolean).join(', ')) : 'Start by filling your profile in <a href="#settings">Settings</a>. It is filled into every form for you.'}</p>
-        <a class="btn primary big m-only mt" href="#apply">Apply for leave</a></header>
+        <a class="btn primary big mt" href="#apply">Apply for leave</a></header>
       <section><h2>Leave balance ${y}</h2>${balanceCards(y)}</section>
-      <section class="two">
-        <div><h2>Leave in progress</h2>${open.length ? `<div class="recs">${open.map(caseRow).join('')}</div>` : '<p class="empty">No leave in progress. Leave you apply for shows here with its next step.</p>'}
-          ${drafts.length ? `<h2 class="mt">Drafts</h2><div class="recs">${drafts.map(recordRow).join('')}</div>` : ''}</div>
-        <div><h2>New leave</h2><a class="btn primary big" href="#apply">Apply for leave</a>
-          <p class="note">Picks the right form and tracks the leave to closure: sanction, departure, joining, reports and bills.</p>
-          <h2 class="mt">Single forms</h2><div class="quick">${FORMS.map(f => `<button type="button" class="qf" data-new="${f.id}">${esc(f.title)}</button>`).join('')}</div></div>
+      <section${drafts.length ? ' class="two"' : ''}>
+        <div><h2>Leave in progress</h2>${open.length ? `<div class="recs">${open.map(caseRow).join('')}</div>` : '<p class="empty">No leave in progress. Leave you apply for shows here with its next step.</p>'}</div>
+        ${drafts.length ? `<div><h2>Unfinished forms</h2><div class="recs">${drafts.map(recordRow).join('')}</div></div>` : ''}
       </section>`;
-    $$('[data-new]', view).forEach(b => b.addEventListener('click', () => startForm(b.dataset.new)));
   }
 
   // ---------- New form ----------
-  function renderNew() {
-    view.innerHTML = `<header class="head"><h1>Single forms</h1><p class="sub">For a form on its own. To apply for leave, use <a href="#apply">Apply for leave</a>, which also tracks the steps that follow. Your profile is filled in for you. Everything saves as you type. Departure, joining and other reports for a leave are quicker from the leave's page, where they come pre-filled.</p></header>
-      <div class="grid">${FORMS.map(f => `<button type="button" class="card" data-new="${f.id}"><span class="t">${esc(f.title)}</span>
-        <span class="d">${esc(f.description || '')}</span><span class="n">${f.pages.length} page${f.pages.length > 1 ? 's' : ''}${APPLY.includes(f.id) ? ' · starts a leave' : ''}</span></button>`).join('')}</div>`;
-    $$('[data-new]', view).forEach(b => b.addEventListener('click', () => startForm(b.dataset.new)));
-  }
   function startForm(formId, from) {
     const d = newDoc(formId, from); DB.docs[d.id] = d; save(); location.hash = 'edit/' + d.id;
   }
@@ -1458,21 +1460,25 @@ window.Leave = (function () {
   // ---------- Records ----------
   let recFilter = { form: '', status: '', q: '' };
   function renderRecords() {
-    view.innerHTML = `<header class="head"><h1>Saved forms</h1><p class="sub">Every form you fill is kept here. Open one to download it again, or copy it to start a similar one.</p></header>
+    view.innerHTML = `<header class="head"><h1>Forms</h1><p class="sub">Every form you fill is kept here. To apply for leave, use <a href="#apply">Apply for leave</a> on Home: it fills the right form and keeps track of the steps after it. A form opened from a leave's page comes pre-filled.</p></header>
+      <section class="kindrow"><label>Fill a single form<select id="nf"><option value="">Choose a form…</option>${FORMS.map(f => `<option value="${f.id}">${esc(f.title)}</option>`).join('')}</select></label>
+        <p class="note">For a form on its own. Your profile is filled in for you.</p></section>
+      <h2 class="mt">Saved forms</h2>
       <div class="filters">
         <input type="search" id="rq" placeholder="Search" value="${esc(recFilter.q)}" aria-label="Search saved forms">
         <select id="rf" aria-label="Form"><option value="">All forms</option>${FORMS.map(f => `<option value="${f.id}"${recFilter.form === f.id ? ' selected' : ''}>${esc(f.title)}</option>`).join('')}</select>
         <select id="rs" aria-label="Status"><option value="">Any status</option>${Object.entries(Object.assign({}, Leave.STATUS, { applied: 'Applied / Submitted' })).map(([k, v]) => `<option value="${k}"${recFilter.status === k ? ' selected' : ''}>${v}</option>`).join('')}</select>
       </div><div id="rlist"></div>`;
+    $('#nf').addEventListener('change', e => { if (e.target.value) startForm(e.target.value); });
     const draw = () => {
       const q = recFilter.q.toLowerCase();
       const docs = Object.values(DB.docs).filter(d => (!recFilter.form || d.formId === recFilter.form) && (!recFilter.status || d.status === recFilter.status)
         && (!q || (docTitle(d) + ' ' + FORM[d.formId].title + ' ' + Object.values(d.values).join(' ')).toLowerCase().includes(q)))
         .sort((a, b) => docDate(b).localeCompare(docDate(a)));
-      $('#rlist').innerHTML = docs.length ? `<div class="table"><table><thead><tr><th>Form</th><th>Details</th><th>Date</th><th>Status</th><th><span class="vh">Actions</span></th></tr></thead><tbody>
-        ${docs.map(d => `<tr><td>${esc(FORM[d.formId].title)}</td><td><a href="#edit/${d.id}">${esc(docTitle(d))}</a></td><td class="nw">${esc(Leave.nice(docDate(d)))}</td><td>${pill(d)}</td>
+      $('#rlist').innerHTML = docs.length ? `<div class="table"><table class="cards"><thead><tr><th>Form</th><th>Details</th><th>Date</th><th>Status</th><th><span class="vh">Actions</span></th></tr></thead><tbody>
+        ${docs.map(d => `<tr><td class="ct">${esc(FORM[d.formId].title)}</td><td><a href="#edit/${d.id}">${esc(docTitle(d))}</a></td><td class="nw" data-l="Date">${esc(Leave.nice(docDate(d)))}</td><td data-l="Status">${pill(d)}</td>
           <td><div class="acts"><button type="button" data-copy="${d.id}">Copy</button><button type="button" data-del="${d.id}">Delete</button></div></td></tr>`).join('')}
-        </tbody></table></div>` : `<p class="empty">${Object.keys(DB.docs).length ? 'No saved forms match.' : 'No saved forms yet. <a href="#new">Start one</a>.'}</p>`;
+        </tbody></table></div>` : `<p class="empty">${Object.keys(DB.docs).length ? 'No saved forms match.' : 'No saved forms yet.'}</p>`;
       $$('[data-copy]').forEach(b => b.addEventListener('click', () => startForm(DB.docs[b.dataset.copy].formId, DB.docs[b.dataset.copy])));
       $$('[data-del]').forEach(b => confirmClick(b, 'Delete?', () => { unlinkDoc(b.dataset.del); delete DB.docs[b.dataset.del]; save(); draw(); toast('Deleted.'); }));
     };
@@ -1496,10 +1502,10 @@ window.Leave = (function () {
     }).sort((a, b) => b.from.localeCompare(a.from));
     view.innerHTML = `<header class="head"><h1>Leave</h1><p class="sub">Every leave you apply for is kept here with its steps: sanction, departure and joining reports, and for academic leave the visit report and bills. Drafts count only once the form is marked Applied.</p></header>
       <div class="filters"><label>Year <select id="ly">${years.map(y => `<option${y === leaveYear ? ' selected' : ''}>${y}</option>`).join('')}</select></label></div>
-      <section><div class="table"><table class="sum"><thead><tr><th>Leave</th><th class="r">Entitled / credited</th><th class="r">Used</th><th class="r">Awaiting sanction</th><th class="r">In drafts</th><th class="r">Balance</th></tr></thead><tbody>
-        ${shown.map(r => `<tr><td><b>${r.type}</b> ${esc(r.label)}</td><td class="r">${r.quota != null ? r.quota : r.credited != null && r.balance != null ? fmt(r.credited) : '–'}</td>
-          <td class="r">${fmt(r.used)}</td><td class="r">${r.pending ? fmt(r.pending) : '–'}</td><td class="r">${r.planned ? fmt(r.planned) : '–'}</td>
-          <td class="r"><b>${r.balance != null ? fmt(r.balance) : '–'}</b></td></tr>`).join('')}
+      <section><div class="table"><table class="sum cards"><thead><tr><th>Leave</th><th class="r">Entitled / credited</th><th class="r">Used</th><th class="r">Awaiting sanction</th><th class="r">In drafts</th><th class="r">Balance</th></tr></thead><tbody>
+        ${shown.map(r => `<tr><td class="ct"><b>${r.type}</b> ${esc(r.label)}</td><td class="r" data-l="Entitled / credited">${r.quota != null ? r.quota : r.credited != null && r.balance != null ? fmt(r.credited) : '–'}</td>
+          <td class="r" data-l="Used">${fmt(r.used)}</td><td class="r${r.pending ? '' : ' m-hide'}" data-l="Awaiting sanction">${r.pending ? fmt(r.pending) : '–'}</td><td class="r${r.planned ? '' : ' m-hide'}" data-l="In drafts">${r.planned ? fmt(r.planned) : '–'}</td>
+          <td class="r" data-l="Balance"><b>${r.balance != null ? fmt(r.balance) : '–'}</b></td></tr>`).join('')}
       </tbody></table></div><p class="note">Used counts leave applied for, less any days cancelled. EL and HPL balances count credits up to today and every leave applied for, including future dates. Commuted leave takes twice its days from HPL. Opening balances are in <a href="#settings">Settings</a>.</p></section>
       <section><div class="sec-h"><h2>Leave history ${leaveYear}</h2><button type="button" id="addManual" class="btn">Add leave by hand</button></div>
         <form id="mform" class="mform" hidden>
@@ -1515,11 +1521,11 @@ window.Leave = (function () {
         </form>
         <div class="filters"><select id="lt" aria-label="Leave type"><option value="">All types</option>${typeOptions(leaveType)}</select>
           <span class="seg" role="group" aria-label="Show">${[['all', 'All'], ['open', 'In progress'], ['done', 'Complete'], ['cancelled', 'Cancelled']].map(([k, l]) => `<button type="button" data-show="${k}" aria-pressed="${leaveShow === k}">${l}</button>`).join('')}</span></div>
-        ${list.length ? `<div class="table"><table><thead><tr><th>Dates</th><th>Leave</th><th class="r">Days</th><th>Where it stands</th><th><span class="vh">Open</span></th></tr></thead><tbody>
-          ${list.map(c => { const cd = Leave.cancelledDays(c); return `<tr><td class="nw"><a href="#case/${c.id}">${esc(Leave.range(c.from, c.to))}</a>${c.half ? ` <span class="muted">½ ${c.half}</span>` : ''}</td>
+        ${list.length ? `<div class="table"><table class="cards"><thead><tr><th>Dates</th><th>Leave</th><th class="r">Days</th><th>Where it stands</th><th><span class="vh">Open</span></th></tr></thead><tbody>
+          ${list.map(c => { const cd = Leave.cancelledDays(c); return `<tr><td class="nw ct"><a href="#case/${c.id}">${esc(Leave.range(c.from, c.to))}</a>${c.half ? ` <span class="muted">½ ${c.half}</span>` : ''}</td>
             <td><b>${c.type}</b> <span class="muted">${esc([c.place, c.purpose].filter(Boolean).join(' · '))}</span>${c.hq && TYPES[c.type].flow === 'cl' ? ' <span class="tag">HQ leave</span>' : ''}</td>
-            <td class="r nw">${fmt(Leave.effDays(c))}${cd && c.state === 'active' ? ` <span class="muted">(${fmt(cd)} cancelled)</span>` : ''}</td>
-            <td>${casePill(c)}</td><td><a href="#case/${c.id}">Open</a></td></tr>`; }).join('')}
+            <td class="r nw" data-l="Days">${fmt(Leave.effDays(c))}${cd && c.state === 'active' ? ` <span class="muted">(${fmt(cd)} cancelled)</span>` : ''}</td>
+            <td data-l="Stands">${casePill(c)}</td><td class="m-hide"><a href="#case/${c.id}">Open</a></td></tr>`; }).join('')}
         </tbody></table></div>` : '<p class="empty">No leave here for this year.</p>'}
       </section>`;
     $('#ly').addEventListener('change', e => { leaveYear = +e.target.value; renderLeave(); });
@@ -1975,13 +1981,13 @@ window.Leave = (function () {
   // ---------- Editor ----------
   function openEditor(id) {
     const doc = DB.docs[id];
-    if (!doc) { view.innerHTML = '<p class="empty">This form was not found. <a href="#records">Saved forms</a></p>'; return; }
+    if (!doc) { view.innerHTML = '<p class="empty">This form was not found. <a href="#records">Forms</a></p>'; return; }
     const C = FORM[doc.formId];
     if (doc.status === 'draft') fillProfile(doc, C, true);
     const hasColl = C.fields.some(f => f.colleague);
     view.innerHTML = `
       <div class="ebar">
-        <a class="back" href="#records" aria-label="Back to saved forms">&larr;</a>
+        <a class="back" href="#records" aria-label="Back to forms">&larr;</a>
         <div class="ebar-t"><b>${esc(C.title)}</b><span id="etitle" class="muted"></span></div>
         <label class="chk"><input type="checkbox" id="hl" checked> Show fields</label>
         <span class="sp"></span>
